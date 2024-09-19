@@ -174,7 +174,7 @@ public with sharing class DMLOperations {
         // Loop through each Opportunity name
             // Create an Opportunity with the given name
             // Add the Opportunity to the list
-        
+        /**** ORIGINAL CODE
         Account acc = new Account(Name = accountName);
         upsert acc;
         
@@ -184,6 +184,31 @@ public with sharing class DMLOperations {
             newOpps.add(newOpp);
         }
         upsert newOpps;
+        ****/
+        
+        // Per Justin's suggestion, refactoring method to check for account/opportunities first
+        // Check if account exists, if not insert
+        Account account = new Account();
+        List<Account> accounts = [SELECT Id, Name FROM Account WHERE Name = :accountName];
+        
+        if (accounts.isEmpty()) {
+            account = new Account(Name = accountName);
+            insert account;
+        } else {
+            // Grab first account w/this name
+            account = accounts[0];
+        }
+
+        // Get existing opps by name; if not exists then insert
+        List<Opportunity> oppsNew = new List<Opportunity>();
+        List<Opportunity> oppsExisting = [SELECT Id, Name FROM Opportunity WHERE Name IN :oppNames];
+
+        for (String oppName : oppNames) {
+            if (!oppsExisting.toString().contains(oppName)) {
+                oppsNew.add(new Opportunity(Name = oppName, AccountId = account.Id, StageName = 'Prospecting', CloseDate = Date.today().addMonths(1)));
+            }
+        }
+        insert oppsNew;
     }
     
     /**
