@@ -174,17 +174,6 @@ public with sharing class DMLOperations {
         // Loop through each Opportunity name
             // Create an Opportunity with the given name
             // Add the Opportunity to the list
-        /**** ORIGINAL CODE
-        Account acc = new Account(Name = accountName);
-        upsert acc;
-        
-        List<Opportunity> newOpps = new List<Opportunity>();
-        for (String oppName : oppNames) {
-            Opportunity newOpp = new Opportunity(Name = oppName, AccountId = acc.Id, StageName = 'Prospecting', CloseDate = Date.today().addMonths(1));
-            newOpps.add(newOpp);
-        }
-        upsert newOpps;
-        ****/
         
         // Per Justin's suggestion, refactoring method to check for account/opportunities first
         // Check if account exists, if not insert
@@ -202,12 +191,19 @@ public with sharing class DMLOperations {
         // Get existing opps by name; if not exists then insert
         List<Opportunity> oppsNew = new List<Opportunity>();
         List<Opportunity> oppsExisting = [SELECT Id, Name FROM Opportunity WHERE Name IN :oppNames];
+        List<String> existingOppNames = new List<String>();
 
+        for (Opportunity opp : oppsExisting) {
+            existingOppNames.add(opp.Name);
+        }
+
+        // Refactoring per Neil to remove toString/contains check on List
         for (String oppName : oppNames) {
-            if (!oppsExisting.toString().contains(oppName)) {
+            if (!existingOppNames.contains(oppName)) {
                 oppsNew.add(new Opportunity(Name = oppName, AccountId = account.Id, StageName = 'Prospecting', CloseDate = Date.today().addMonths(1)));
             }
         }
+
         insert oppsNew;
     }
     
